@@ -31,4 +31,4 @@ We validated our model on the public **IBM AMLSim HI-Small** benchmark (56,000 n
 *   **GCP Architecture**: The Google Cloud Pub/Sub → BigQuery → Vertex AI → Cloud Run pipeline is a documented architectural plan and is not provisioned.
 
 > [!NOTE]
-> **Honest Limitation**: In real-world environments like AMLSim, our model operates at a maximum F1-score of 30.7471%. While it catches a high percentage of fraud (99.0654% recall at a Youden's threshold of 0.104), human-in-the-loop validation remains necessary to resolve false positives.
+> **Honest Limitation / Tradeoff**: At our F1-optimal threshold, the model catches 33.3% of true laundering accounts with 28.5% precision (F1 = 30.7%). A more sensitive threshold (Youden's J) raises recall to 99% but at the cost of far more false positives — the tradeoff a compliance team can tune based on investigator capacity.

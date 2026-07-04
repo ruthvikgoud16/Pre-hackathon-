@@ -56,11 +56,11 @@ This task board outlines the bare minimum steps required to build Sentinel AI fo
 
 ---
 
-## Phase 6: Demo Dry Run `[ ]`
-- [ ] Start development server: `npm run dev`
-- [ ] Execute script:
-  - [ ] Triage dashboard shows critical Romance Scam alert.
-  - [ ] Graph loads displaying the money movement network.
-  - [ ] Click "Analyze Case" -> Copilot explains layering & shared devices.
-  - [ ] Click "Draft SAR" -> Copilot drafts narrative text.
-  - [ ] Click "Freeze Account" -> Nodes turn red.
+## Phase 6: Demo Dry Run `[x]`
+- [x] Start development server: `npm run dev`
+- [x] Execute script:
+  - [x] Triage dashboard shows critical Romance Scam alert.
+  - [x] Graph loads displaying the money movement network.
+  - [x] Click "Analyze Case" -> Copilot explains layering & shared devices.
+  - [x] Click "Draft SAR" -> Copilot drafts narrative text.
+  - [x] Click "Freeze Account" -> Nodes turn red.

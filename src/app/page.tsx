@@ -18,11 +18,13 @@ import {
   Database
 } from 'lucide-react';
 import { ROMANCE_SCAM_SCENARIO, DemoScenario } from '@/lib/mockData';
+import MoneyFlowGraph from '@/components/MoneyFlowGraph';
 
 export default function Home() {
   // Demo interactive state
   const [scenario, setScenario] = useState<DemoScenario>(ROMANCE_SCAM_SCENARIO);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(ROMANCE_SCAM_SCENARIO.alert.id);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isFrozen, setIsFrozen] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'model'; content: string }>>([]);
@@ -187,18 +189,16 @@ export default function Home() {
             </div>
 
             {/* Canvas Area Placeholder for graph */}
-            <div className="flex-1 w-full flex items-center justify-center bg-slate-950/80 relative overflow-hidden">
+            <div className="flex-1 w-full bg-slate-950/80 relative overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.06),transparent_55%)] pointer-events-none" />
               <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none" />
               
-              {/* Temporary visual fallback to indicate Graph Rendering component is next */}
-              <div className="text-center z-10 flex flex-col items-center">
-                <div className="p-4 rounded-full bg-indigo-500/5 border border-indigo-500/10 mb-3 animate-pulse">
-                  <Activity className="h-10 w-10 text-indigo-400" />
-                </div>
-                <h3 className="text-sm font-semibold text-slate-300">Transaction Network Visualizer</h3>
-                <p className="text-xs text-slate-500 mt-1 max-w-xs">Integrating Graph Network component to render nodes (Victim, Mule Intermediate, Mule Target, Crypto Exchange).</p>
-              </div>
+              <MoneyFlowGraph 
+                nodes={scenario.graph.nodes}
+                edges={scenario.graph.edges}
+                isFrozen={isFrozen}
+                onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
+              />
             </div>
           </div>
 
@@ -206,12 +206,50 @@ export default function Home() {
           <div className="h-56 bg-slate-900/20 flex flex-col">
             <div className="h-9 border-b border-slate-800 bg-slate-900/30 flex items-center justify-between px-4">
               <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">Associated Transaction Ledger & Alert Timeline</span>
-              <span className="text-[10px] text-slate-400 font-mono">5 events correlated</span>
+              <span className="text-[10px] text-slate-400 font-mono">{scenario.timeline.length} events correlated</span>
             </div>
             
-            {/* Timeline Placeholder */}
-            <div className="flex-1 overflow-x-auto p-4 flex items-center justify-center">
-              <p className="text-xs text-slate-500">Integrating horizontal/vertical timeline log representation next.</p>
+            <div className="flex-1 overflow-x-auto p-4 flex items-stretch space-x-4">
+              {scenario.timeline.map((event) => {
+                let icon = <Activity className="h-4 w-4 text-slate-400" />;
+                let borderTheme = 'border-slate-800 bg-slate-900/10';
+                
+                if (event.type === 'transaction') {
+                  icon = <TrendingUp className="h-4 w-4 text-indigo-450" />;
+                  borderTheme = 'border-indigo-500/10 bg-indigo-500/5';
+                } else if (event.type === 'device_swap') {
+                  icon = <Smartphone className="h-4 w-4 text-amber-555" />;
+                  borderTheme = 'border-amber-500/10 bg-amber-500/5';
+                } else if (event.type === 'cyber_tip') {
+                  icon = <AlertTriangle className="h-4 w-4 text-rose-555" />;
+                  borderTheme = 'border-rose-500/15 bg-rose-500/5';
+                }
+
+                return (
+                  <div key={event.id} className={`w-72 flex-shrink-0 p-3 rounded-xl border flex flex-col justify-between ${borderTheme}`}>
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center space-x-2">
+                          {icon}
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 font-mono">
+                            {event.type}
+                          </span>
+                        </div>
+                        <span className="text-[9px] text-slate-500 font-mono">
+                          {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-semibold text-slate-200 line-clamp-1">{event.title}</h4>
+                      <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">{event.description}</p>
+                    </div>
+                    {event.amount && (
+                      <div className="mt-2 text-right">
+                        <span className="text-xs font-bold font-mono text-slate-200">${event.amount.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

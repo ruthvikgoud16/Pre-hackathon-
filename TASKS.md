@@ -35,13 +35,13 @@ This task board outlines the bare minimum steps required to build Sentinel AI fo
 
 ---
 
-## Phase 4: Graph & Timeline Integration `[ ]`
-- [ ] Integrate graph rendering in `src/components/MoneyFlowGraph.tsx`:
-  - [ ] Load node coordinates and edges from `mockData.ts`.
-  - [ ] Apply node colors: Green (Victim), Orange (Intermediaries), Red (Mule Target), Grey/Blue (Crypto cash-out).
-  - [ ] Implement hover state tooltips showing IP and device fingerprints.
-- [ ] Integrate timeline list:
-  - [ ] Build clean list showing icons for transaction types, device flags, and police notices.
+## Phase 4: Graph & Timeline Integration `[x]`
+- [x] Integrate graph rendering in `src/components/MoneyFlowGraph.tsx`:
+  - [x] Load node coordinates and edges from `mockData.ts`.
+  - [x] Apply node colors: Green (Victim), Orange (Intermediaries), Red (Mule Target), Grey/Blue (Crypto cash-out).
+  - [x] Implement hover state tooltips showing IP and device fingerprints.
+- [x] Integrate timeline list:
+  - [x] Build clean list showing icons for transaction types, device flags, and police notices.
 
 ---
 

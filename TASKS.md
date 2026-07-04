@@ -78,3 +78,10 @@ This task board outlines the bare minimum steps required to build Sentinel AI fo
 - [ ] Canvas Metrics Overlay: Overlay top graph stats (e.g., "Velocity: 180s", "Shared Devices: 1") on the graph canvas. `[Est: 10 min]`
 - [ ] Alert Queue Pulse: Add a glowing red indicator ring around the suspect card in the alert sidebar. `[Est: 10 min]`
 - [ ] Glassmorphism Container styling: Apply refined backdrop-blur styles to the dashboard containers. `[Est: 15 min]`
+
+---
+
+## Phase 8: Explainable Detection Engine (P0) `[ ]`
+- [ ] Implement Detection Logic: Create `src/lib/detectionEngine.ts` to evaluate the 6 signals (Velocity, Devices, Senders, Cyber tip, Layering, New account) and calculate a risk score with text reasons. `[Est: 15 min]`
+- [ ] Display Risk Diagnostics in UI: Render a dedicated "Threat Signal Analysis" card in the dashboard showing checked/crossed badges for each of the 6 signals. `[Est: 15 min]`
+- [ ] Wire raw transaction simulator: Allow showing the input transactions, running the detection engine, and updating the risk score live. `[Est: 15 min]`

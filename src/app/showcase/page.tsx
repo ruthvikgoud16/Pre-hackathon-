@@ -1,18 +1,106 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Shield, ArrowLeft, BarChart2, Share2, Cpu, CheckCircle, AlertTriangle, Wrench, Activity } from 'lucide-react';
 
 export default function ShowcasePage() {
+  const router = useRouter();
+  const [isAutoPlay, setIsAutoPlay] = useState(false);
+  const [activeStageIndex, setActiveStageIndex] = useState(8);
+
+  const SHOWCASE_AUTO_STEPS = [
+    { label: "Stage 01", dwellMs: 6000 },
+    { label: "Stage 02", dwellMs: 6000 },
+    { label: "Stage 03", dwellMs: 7000 },
+    { label: "Stage 04", dwellMs: 6000 },
+    { label: "Stage 05", dwellMs: 6000 },
+    { label: "Stage 06", dwellMs: 6000 },
+    { label: "Stage 07", dwellMs: 6000 },
+    { label: "Stage 08", dwellMs: 7000 },
+    { label: "Stage 09", dwellMs: 8000 },
+  ];
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('autoplay') === 'true') {
+        setIsAutoPlay(true);
+        setActiveStageIndex(0);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAutoPlay) return;
+
+    const current = SHOWCASE_AUTO_STEPS[activeStageIndex];
+    if (!current) return;
+
+    const element = document.getElementById(`journey-stage-${activeStageIndex}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    const timer = setTimeout(() => {
+      if (activeStageIndex < SHOWCASE_AUTO_STEPS.length - 1) {
+        setActiveStageIndex(prev => prev + 1);
+      } else {
+        setIsAutoPlay(false);
+        setActiveStageIndex(8);
+      }
+    }, current.dwellMs);
+
+    return () => clearTimeout(timer);
+  }, [isAutoPlay, activeStageIndex]);
+
+  const handleNextStage = () => {
+    if (activeStageIndex < SHOWCASE_AUTO_STEPS.length - 1) {
+      setActiveStageIndex(prev => prev + 1);
+    } else {
+      setIsAutoPlay(false);
+      setActiveStageIndex(8);
+    }
+  };
+
+  const handleExitAutoPlay = () => {
+    setIsAutoPlay(false);
+    setActiveStageIndex(8);
+    router.replace('/showcase');
+  };
+
   return (
     <main className="min-h-screen w-screen overflow-x-hidden bg-[#F4EFE6] text-[#1C1E1E] font-mono antialiased p-8 bg-paper-grain bg-watermark">
       {/* Header */}
-      <header className="max-w-5xl mx-auto flex items-center justify-between border-b-2 border-[#1C1E1E] pb-4 mb-8">
+      <header className="max-w-5xl mx-auto flex items-center justify-between border-b-2 border-[#1C1E1E] pb-4 mb-8 relative overflow-hidden">
         <div className="flex items-center space-x-4">
           <div className="h-12 w-12 border-2 border-[#991B1B] text-[#991B1B] rounded flex items-center justify-center bg-white shadow-sm transform -rotate-3">
             <Shield className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-2xl font-black uppercase tracking-tight">Technical Showcase</h1>
+            <div className="flex items-center space-x-3">
+              <h1 className="text-2xl font-black uppercase tracking-tight">Technical Showcase</h1>
+              {isAutoPlay && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-[8px] bg-[#991B1B] text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider animate-pulse border border-[#7f1d1d]">
+                    Auto-Play Active
+                  </span>
+                  <button 
+                    onClick={handleExitAutoPlay}
+                    className="text-[8px] bg-[#666258] text-white hover:bg-[#1C1E1E] px-2 py-0.5 rounded font-bold uppercase tracking-wider transition-colors border border-[#000] cursor-pointer"
+                  >
+                    Exit Auto-Demo
+                  </button>
+                  <button 
+                    onClick={handleNextStage}
+                    className="text-[8px] bg-[#166534] text-white hover:bg-[#14532d] px-2 py-0.5 rounded font-bold uppercase tracking-wider transition-colors border border-[#14532d] cursor-pointer"
+                  >
+                    Next ▶
+                  </button>
+                </div>
+              )}
+            </div>
             <p className="text-xs text-[#666258] uppercase tracking-widest font-bold">Model Validation & Architecture</p>
           </div>
         </div>
@@ -20,6 +108,14 @@ export default function ShowcasePage() {
           <ArrowLeft className="h-4 w-4" />
           <span>Return to Demo</span>
         </Link>
+        {isAutoPlay && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#E8E2D5]">
+            <div 
+              className="bg-[#991B1B] h-full transition-all duration-300"
+              style={{ width: `${((activeStageIndex + 1) / SHOWCASE_AUTO_STEPS.length) * 100}%` }}
+            />
+          </div>
+        )}
       </header>
 
       <div className="max-w-5xl mx-auto grid grid-cols-1 gap-12">
@@ -35,7 +131,7 @@ export default function ShowcasePage() {
 
           <div className="relative pl-6 md:pl-8 border-l-2 border-[#D2C9B9] ml-4 md:ml-6 space-y-10">
             {/* Stage 1 */}
-            <div className="relative">
+            <div id="journey-stage-0" className={`relative transition-all duration-500 ${activeStageIndex >= 0 ? 'opacity-100 scale-100 font-bold' : 'opacity-20 scale-95 pointer-events-none'}`}>
               <div className="absolute -left-[37px] md:-left-[45px] top-1 bg-white border-2 border-[#166534] rounded-full p-1.5 text-[#166534] shadow-sm">
                 <CheckCircle className="h-4.5 w-4.5" />
               </div>
@@ -51,7 +147,7 @@ export default function ShowcasePage() {
             </div>
 
             {/* Stage 2 */}
-            <div className="relative">
+            <div id="journey-stage-1" className={`relative transition-all duration-500 ${activeStageIndex >= 1 ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}>
               <div className="absolute -left-[37px] md:-left-[45px] top-1 bg-white border-2 border-[#B45309] rounded-full p-1.5 text-[#B45309] shadow-sm">
                 <AlertTriangle className="h-4.5 w-4.5" />
               </div>
@@ -67,7 +163,7 @@ export default function ShowcasePage() {
             </div>
 
             {/* Stage 3 */}
-            <div className="relative">
+            <div id="journey-stage-2" className={`relative transition-all duration-500 ${activeStageIndex >= 2 ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}>
               <div className="absolute -left-[37px] md:-left-[45px] top-1 bg-white border-2 border-[#B45309] rounded-full p-1.5 text-[#B45309] shadow-sm">
                 <AlertTriangle className="h-4.5 w-4.5" />
               </div>
@@ -83,7 +179,7 @@ export default function ShowcasePage() {
             </div>
 
             {/* Stage 4 */}
-            <div className="relative">
+            <div id="journey-stage-3" className={`relative transition-all duration-500 ${activeStageIndex >= 3 ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}>
               <div className="absolute -left-[37px] md:-left-[45px] top-1 bg-white border-2 border-[#1C1E1E] rounded-full p-1.5 text-[#1C1E1E] shadow-sm">
                 <Wrench className="h-4.5 w-4.5" />
               </div>
@@ -99,7 +195,7 @@ export default function ShowcasePage() {
             </div>
 
             {/* Stage 5 */}
-            <div className="relative">
+            <div id="journey-stage-4" className={`relative transition-all duration-500 ${activeStageIndex >= 4 ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}>
               <div className="absolute -left-[37px] md:-left-[45px] top-1 bg-white border-2 border-[#166534] rounded-full p-1.5 text-[#166534] shadow-sm">
                 <CheckCircle className="h-4.5 w-4.5" />
               </div>
@@ -115,7 +211,7 @@ export default function ShowcasePage() {
             </div>
 
             {/* Stage 6 */}
-            <div className="relative">
+            <div id="journey-stage-5" className={`relative transition-all duration-500 ${activeStageIndex >= 5 ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}>
               <div className="absolute -left-[37px] md:-left-[45px] top-1 bg-white border-2 border-[#1C1E1E] rounded-full p-1.5 text-[#1C1E1E] shadow-sm">
                 <Wrench className="h-4.5 w-4.5" />
               </div>
@@ -131,7 +227,7 @@ export default function ShowcasePage() {
             </div>
 
             {/* Stage 7 */}
-            <div className="relative">
+            <div id="journey-stage-6" className={`relative transition-all duration-500 ${activeStageIndex >= 6 ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}>
               <div className="absolute -left-[37px] md:-left-[45px] top-1 bg-white border-2 border-[#166534] rounded-full p-1.5 text-[#166534] shadow-sm">
                 <CheckCircle className="h-4.5 w-4.5" />
               </div>
@@ -147,7 +243,7 @@ export default function ShowcasePage() {
             </div>
 
             {/* Stage 8 */}
-            <div className="relative">
+            <div id="journey-stage-7" className={`relative transition-all duration-500 ${activeStageIndex >= 7 ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}>
               <div className="absolute -left-[37px] md:-left-[45px] top-1 bg-white border-2 border-[#B45309] rounded-full p-1.5 text-[#B45309] shadow-sm">
                 <AlertTriangle className="h-4.5 w-4.5" />
               </div>
@@ -163,7 +259,7 @@ export default function ShowcasePage() {
             </div>
 
             {/* Stage 9 */}
-            <div className="relative">
+            <div id="journey-stage-8" className={`relative transition-all duration-500 ${activeStageIndex >= 8 ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}>
               <div className="absolute -left-[37px] md:-left-[45px] top-1 bg-white border-2 border-[#166534] rounded-full p-1.5 text-[#166534] shadow-sm">
                 <CheckCircle className="h-4.5 w-4.5" />
               </div>

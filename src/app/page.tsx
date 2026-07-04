@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Shield, 
   AlertTriangle, 
@@ -54,6 +55,7 @@ const CountUp = ({ end, duration = 800, suffix = "" }: { end: number, duration?:
 };
 
 export default function Home() {
+  const router = useRouter();
   // Stepper State (DEMO MODE REDESIGN)
   const [activeStep, setActiveStep] = useState<number>(1);
 
@@ -263,6 +265,78 @@ export default function Home() {
     setSarSubmitted(prev => ({ ...prev, [selectedAlertId]: true }));
   };
 
+  // Auto-Demo State & Logic
+  const [isAutoDemo, setIsAutoDemo] = useState(false);
+  const [autoDemoIndex, setAutoDemoIndex] = useState(0);
+
+  const AUTO_DEMO_STEPS = [
+    { step: 1, label: "Detect", dwellMs: 8000 },
+    { step: 2, label: "Trace Network", dwellMs: 10000 },
+    { step: 3, label: "Consult Copilot", dwellMs: 16000 },
+    { step: 4, label: "Lock Account", dwellMs: 7000 },
+    { step: 5, label: "File Case", dwellMs: 7000 },
+  ];
+
+  useEffect(() => {
+    if (!isAutoDemo) return;
+
+    const current = AUTO_DEMO_STEPS[autoDemoIndex];
+    if (!current) return;
+
+    setActiveStep(current.step);
+
+    let actionTimeout: NodeJS.Timeout;
+
+    if (current.step === 1) {
+      setSelectedAlertId("alert-1042");
+    } else if (current.step === 3) {
+      actionTimeout = setTimeout(() => {
+        callChatApi("Draft a formal regulatory Suspicious Activity Report (SAR) narrative for this transaction ring.");
+      }, 1000);
+    } else if (current.step === 4) {
+      actionTimeout = setTimeout(() => {
+        handleFreeze();
+      }, 1500);
+    } else if (current.step === 5) {
+      actionTimeout = setTimeout(() => {
+        handleSubmitSar();
+      }, 1500);
+    }
+
+    const advanceTimeout = setTimeout(() => {
+      if (autoDemoIndex < AUTO_DEMO_STEPS.length - 1) {
+        setAutoDemoIndex(prev => prev + 1);
+      } else {
+        setIsAutoDemo(false);
+        router.push('/showcase?autoplay=true');
+      }
+    }, current.dwellMs);
+
+    return () => {
+      clearTimeout(actionTimeout);
+      clearTimeout(advanceTimeout);
+    };
+  }, [isAutoDemo, autoDemoIndex]);
+
+  const handleNextAutoDemo = () => {
+    if (autoDemoIndex < AUTO_DEMO_STEPS.length - 1) {
+      setAutoDemoIndex(prev => prev + 1);
+    } else {
+      setIsAutoDemo(false);
+      router.push('/showcase?autoplay=true');
+    }
+  };
+
+  const handleStartAutoDemo = () => {
+    handleReset();
+    setIsAutoDemo(true);
+    setAutoDemoIndex(0);
+  };
+
+  const handleExitAutoDemo = () => {
+    setIsAutoDemo(false);
+  };
+
   // Simple Markdown Renderer
   const renderMarkdown = (text: string) => {
     const lines = text.split('\n');
@@ -346,7 +420,7 @@ export default function Home() {
       )}
 
       {/* 1. INVESTIGATION FILE HEADER WITH STEPPER TAB DIVIDERS */}
-      <div className="absolute top-4 left-4 right-4 h-16 bg-[#FDFBF7] border border-[#D2C9B9] shadow-sm rounded flex items-center justify-between px-6 z-10 font-mono">
+      <div className="absolute top-4 left-4 right-4 h-16 bg-[#FDFBF7] border border-[#D2C9B9] shadow-sm rounded flex items-center justify-between px-6 z-10 font-mono relative overflow-hidden">
         <div className="flex items-center space-x-3">
           <div className="h-10 w-10 border-2 border-[#991B1B] text-[#991B1B] rounded flex items-center justify-center bg-white">
             <Shield className="h-5 w-5" />
@@ -357,6 +431,32 @@ export default function Home() {
               <a href="/showcase" className="text-[7px] bg-[#E8E2D5] text-[#666258] hover:bg-[#D2C9B9] hover:text-[#1C1E1E] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider transition-colors border border-[#D2C9B9]">
                 Model Validation
               </a>
+              {isAutoDemo ? (
+                <div className="flex items-center space-x-2">
+                  <span className="text-[7px] bg-[#991B1B] text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider animate-pulse border border-[#7f1d1d]">
+                    Auto-Play Active
+                  </span>
+                  <button 
+                    onClick={handleExitAutoDemo}
+                    className="text-[7px] bg-[#666258] text-white hover:bg-[#1C1E1E] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider transition-colors border border-[#000] cursor-pointer"
+                  >
+                    Exit Auto-Demo
+                  </button>
+                  <button 
+                    onClick={handleNextAutoDemo}
+                    className="text-[7px] bg-[#166534] text-white hover:bg-[#14532d] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider transition-colors border border-[#14532d] cursor-pointer flex items-center space-x-1"
+                  >
+                    <span>Next ▶</span>
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={handleStartAutoDemo}
+                  className="text-[7px] bg-[#1D4ED8] text-white hover:bg-[#1e40af] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider transition-colors border border-[#1e40af] cursor-pointer"
+                >
+                  Start Auto-Demo
+                </button>
+              )}
             </div>
             <p className="text-[8px] text-[#666258] tracking-widest uppercase">CASE DOSSIER: SC-{currentAlert.targetAccountId}</p>
           </div>
@@ -421,6 +521,14 @@ export default function Home() {
             </button>
           )}
         </div>
+        {isAutoDemo && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#E8E2D5]">
+            <div 
+              className="bg-[#991B1B] h-full transition-all duration-300"
+              style={{ width: `${((autoDemoIndex + 1) / AUTO_DEMO_STEPS.length) * 100}%` }}
+            />
+          </div>
+        )}
       </div>
 
       {/* 2. MAIN WORKSPACE CONTAINER */}

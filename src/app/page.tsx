@@ -70,6 +70,64 @@ export default function Home() {
     }));
   };
 
+  const renderMarkdown = (text: string) => {
+    const lines = text.split('\n');
+    return lines.map((line, idx) => {
+      let cleanLine = line;
+
+      // Bold replacements (**text**)
+      const boldRegex = /\*\*(.*?)\*\*/g;
+      cleanLine = cleanLine.replace(boldRegex, '<strong>$1</strong>');
+
+      // Check for headers (e.g. ### Header)
+      if (cleanLine.startsWith('### ')) {
+        const headerText = cleanLine.substring(4).replace(boldRegex, '$1');
+        return (
+          <h4 key={idx} className="text-[10px] font-bold text-indigo-400 mt-3 mb-1.5 font-mono uppercase tracking-wider border-b border-slate-800 pb-0.5">
+            {headerText}
+          </h4>
+        );
+      }
+
+      if (cleanLine.startsWith('## ')) {
+        const headerText = cleanLine.substring(3).replace(boldRegex, '$1');
+        return (
+          <h3 key={idx} className="text-xs font-bold text-slate-100 mt-4 mb-2 border-b border-indigo-500/20 pb-1">
+            {headerText}
+          </h3>
+        );
+      }
+
+      // Check for bullet items (e.g. - item or * item)
+      if (cleanLine.startsWith('- ') || cleanLine.startsWith('* ')) {
+        const bulletText = cleanLine.substring(2);
+        return (
+          <div key={idx} className="flex items-start space-x-1.5 ml-2 my-1">
+            <span className="text-indigo-500 mt-0.5">•</span>
+            <span dangerouslySetInnerHTML={{ __html: bulletText }} />
+          </div>
+        );
+      }
+
+      let lineClass = "my-1 leading-relaxed text-slate-300";
+      if (cleanLine.includes('Mitigation Executed') || cleanLine.includes('FROZEN')) {
+        lineClass += " text-red-400 font-mono";
+      }
+
+      if (cleanLine.trim() === '') {
+        return <div key={idx} className="h-2" />;
+      }
+
+      return (
+        <p 
+          key={idx} 
+          className={lineClass}
+          dangerouslySetInnerHTML={{ __html: cleanLine }} 
+        />
+      );
+    });
+  };
+
   const callChatApi = async (userPrompt: string) => {
     if (!userPrompt.trim()) return;
     setIsAnalyzing(true);
@@ -505,13 +563,13 @@ export default function Home() {
                       {msg.role === 'user' ? 'Investigator' : 'Gemini Copilot'}
                     </span>
                     <div 
-                      className={`p-3 rounded-xl max-w-[95%] text-xs font-sans whitespace-pre-wrap leading-relaxed ${
+                      className={`p-3 rounded-xl max-w-[95%] text-xs font-sans leading-relaxed ${
                         msg.role === 'user' 
-                          ? 'bg-indigo-600 text-white rounded-tr-none' 
+                          ? 'bg-indigo-650 text-white rounded-tr-none whitespace-pre-wrap' 
                           : 'bg-slate-900/80 border border-slate-800 text-slate-200 rounded-tl-none'
                       }`}
                     >
-                      {msg.content}
+                      {msg.role === 'user' ? msg.content : renderMarkdown(msg.content)}
                     </div>
                   </div>
                 ))}

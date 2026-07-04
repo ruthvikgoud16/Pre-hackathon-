@@ -21,31 +21,37 @@ export default function MoneyFlowGraph({ nodes, edges, isFrozen, onSelectNode }:
 
     // 1. Map Mock Nodes to vis.js Nodes
     const visNodes = nodes.map((node) => {
-      let bg = '#1e293b'; // Slate
-      let border = '#475569';
-      let text = '#f8fafc';
+      let bg = '#78716c'; // Stone grey
+      let border = '#44403c';
+      let text = '#1c1e1e'; // Dark charcoal text
       
       // Determine colors based on status/roles
       if (isFrozen) {
-        bg = '#7f1d1d'; // Crimson red for frozen state
-        border = '#ef4444';
+        // Under isolation, mule hub stays red; others fade to grey
+        if (node.type === 'target') {
+          bg = '#991b1b'; // Distressed red stamp
+          border = '#7f1d1d';
+        } else {
+          bg = '#a8a29e'; // Faded charcoal
+          border = '#78716c';
+        }
       } else {
         switch (node.type) {
           case 'victim':
-            bg = '#064e3b'; // Green
-            border = '#10b981';
+            bg = '#166534'; // Safe Ledger Green
+            border = '#14532d';
             break;
           case 'intermediary':
-            bg = '#7c2d12'; // Orange
-            border = '#f97316';
+            bg = '#a16207'; // Sepia Amber
+            border = '#713f12';
             break;
           case 'target':
-            bg = '#881337'; // Rose/Red for target
-            border = '#f43f5e';
+            bg = '#991b1b'; // Stamp Red
+            border = '#7f1d1d';
             break;
           case 'cash_out':
-            bg = '#1e1b4b'; // Deep Indigo/Blue
-            border = '#6366f1';
+            bg = '#1d4ed8'; // Signature Pen Blue
+            border = '#1e40af';
             break;
         }
       }
@@ -57,43 +63,43 @@ export default function MoneyFlowGraph({ nodes, edges, isFrozen, onSelectNode }:
           background: bg,
           border: border,
           highlight: {
-            background: isFrozen ? '#991b1b' : '#312e81',
-            border: isFrozen ? '#f87171' : '#818cf8',
+            background: '#1d4ed8', // Ballpoint blue highlight
+            border: '#1e40af',
           },
           hover: {
-            background: isFrozen ? '#991b1b' : '#1e1b4b',
-            border: isFrozen ? '#f87171' : '#6366f1',
+            background: bg,
+            border: '#1d4ed8',
           }
         },
-        font: { color: text, size: 11, face: 'monospace' },
-        borderWidth: 3,
+        font: { color: text, size: 10, face: 'Courier New, Courier, monospace', bold: true },
+        borderWidth: 2.5,
         shape: 'dot',
-        size: 16,
+        size: 15,
         shadow: {
           enabled: true,
-          color: border,
-          size: 12,
-          x: 0,
-          y: 0
+          color: 'rgba(28, 30, 30, 0.15)',
+          size: 6,
+          x: 2,
+          y: 2
         }
       };
     });
 
     // 2. Map Mock Edges to vis.js Edges
     const visEdges = edges.map((edge) => {
-      let edgeColor = '#475569'; // default slate
+      let edgeColor = '#78716c'; // default charcoal-stone
       if (isFrozen) {
-        edgeColor = '#ef4444'; // Red
+        edgeColor = '#b91c1c'; // Isolated Red links
       } else {
         switch (edge.channel) {
           case 'ZELLE':
-            edgeColor = '#8b5cf6'; // Violet
+            edgeColor = '#1d4ed8'; // Pen blue
             break;
           case 'ACH':
-            edgeColor = '#f59e0b'; // Amber
+            edgeColor = '#166534'; // Ledger green
             break;
           case 'WIRE':
-            edgeColor = '#06b6d4'; // Cyan
+            edgeColor = '#991b1b'; // Stamp red
             break;
         }
       }
@@ -104,26 +110,26 @@ export default function MoneyFlowGraph({ nodes, edges, isFrozen, onSelectNode }:
         to: edge.to,
         label: edge.label,
         font: {
-          color: '#e2e8f0',
-          size: 11,
-          face: 'monospace',
-          strokeWidth: 2,
-          strokeColor: '#0f172a'
+          color: '#1c1e1e', // Dark charcoal labels
+          size: 9,
+          face: 'Courier New, Courier, monospace',
+          strokeWidth: 3,
+          strokeColor: '#fdfbf7' // Outlined with white paper back
         },
         arrows: {
-          to: { enabled: true, scaleFactor: 0.8 }
+          to: { enabled: true, scaleFactor: 0.75 }
         },
         color: {
           color: edgeColor,
-          highlight: '#ffffff',
-          hover: '#94a3b8'
+          highlight: '#1d4ed8',
+          hover: '#1d4ed8'
         },
-        width: isFrozen ? 3 : 2,
+        width: isFrozen ? 2.5 : 1.5,
         dashes: true,
         smooth: {
           type: 'cubicBezier',
           forceDirection: 'none',
-          roundness: 0.3
+          roundness: 0.25
         }
       };
     });

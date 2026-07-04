@@ -32,36 +32,45 @@ def main():
             'is_mule': 0,
             'device_fingerprint': f"dev-{random.randint(10000, 99999)}",
             'ip_address': f"192.168.{random.randint(1, 254)}.{random.randint(1, 254)}",
-            'type': 'normal'
+            'type': 'normal',
+            'ring_idx': -1
         })
         
     nodes_df = pd.DataFrame(nodes_data).set_index('account_id')
     
+    # Introduce family units sharing a device fingerprint (legitimate noise)
+    num_family_groups = 300
+    for fg in range(num_family_groups):
+        shared_dev = f"dev-legit-family-{fg:03d}"
+        sampled_accs = nodes_df[nodes_df['is_mule'] == 0].sample(n=random.randint(2, 6)).index
+        nodes_df.loc[sampled_accs, 'device_fingerprint'] = shared_dev
+
+    # Introduce shared IP subnets for corporate environments (legitimate noise)
+    num_office_ips = 100
+    for oi in range(num_office_ips):
+        shared_ip = f"10.150.90.{random.randint(1, 254)}"
+        sampled_accs = nodes_df[nodes_df['is_mule'] == 0].sample(n=random.randint(15, 30)).index
+        nodes_df.loc[sampled_accs, 'ip_address'] = shared_ip
+        
     # Track which accounts are mules
     mule_accounts = set()
     
     # 2. Build Mule Rings (Victim -> Intermediary 1 -> Intermediary 2 -> Hub -> Cash-out)
     mule_node_counter = 1
     for ring_idx in range(num_mule_rings):
-        # We take a few nodes from the end of the node list to turn them into a mule ring
-        # This keeps the nodes list simple.
         ring_size = random.randint(4, 6)
         ring_nodes = []
         
         # Select fresh accounts to assign as mules
         for _ in range(ring_size):
-            # Pick a node index
             node_idx = num_nodes - mule_node_counter
             acc_id = make_acc_id(node_idx)
             ring_nodes.append(acc_id)
             mule_accounts.add(acc_id)
             mule_node_counter += 1
             
-        # Designate roles in the ring
-        # Node 0: Victim
-        # Node 1 to ring_size-3: Intermediaries
-        # Node ring_size-2: Hub (Target)
-        # Node ring_size-1: Cash-out
+        # Designate roles and associate ring index
+        nodes_df.loc[ring_nodes, 'ring_idx'] = ring_idx
         
         nodes_df.loc[ring_nodes[0], 'type'] = 'victim'
         for i in range(1, ring_size - 2):
@@ -76,17 +85,24 @@ def main():
         nodes_df.loc[cashout_node, 'type'] = 'cash_out'
         
         # Inject shared device/IP among the intermediaries and hub in this ring
-        shared_device = f"dev-shared-{ring_idx:03d}"
-        shared_ip = f"10.50.{ring_idx}.{random.randint(10, 99)}"
-        
-        # Shared devices between intermediaries and hub
-        for node in ring_nodes[1 : ring_size - 1]:
-            nodes_df.loc[node, 'device_fingerprint'] = shared_device
-            nodes_df.loc[node, 'ip_address'] = shared_ip
+        # 15% of rings are OPACIFIED (each node has clean unique VPN metadata)
+        is_opacified = (random.random() < 0.15)
+        if not is_opacified:
+            shared_device = f"dev-shared-{ring_idx:03d}"
+            shared_ip = f"10.50.{ring_idx}.{random.randint(10, 99)}"
+            for node in ring_nodes[1 : ring_size - 1]:
+                nodes_df.loc[node, 'device_fingerprint'] = shared_device
+                nodes_df.loc[node, 'ip_address'] = shared_ip
+        else:
+            for idx, node in enumerate(ring_nodes[1 : ring_size - 1]):
+                nodes_df.loc[node, 'device_fingerprint'] = f"dev-clean-vpn-{ring_idx:03d}-{idx}"
+                nodes_df.loc[node, 'ip_address'] = f"10.200.{ring_idx}.{10 + idx}"
             
         # Create transactions along the ring path
-        # Time starts at a base date
-        base_time = datetime(2026, 7, 4, random.randint(0, 18), random.randint(0, 59))
+        # 45% of rings act as "patient money mules" with longer delays and partial routing splits
+        is_patient_mule = (random.random() < 0.45)
+        
+        base_time = datetime(2026, 7, 4, random.randint(0, 12), random.randint(0, 59))
         amount = random.randint(3000, 12000)
         
         # Transfer from victim to first intermediary
@@ -100,13 +116,22 @@ def main():
             'timestamp': base_time.isoformat()
         })
         
-        # Layering transfers: short latency (15 seconds to 3 minutes)
+        # Layering transfers
         current_time = base_time
         current_amount = amount
         for i in range(1, ring_size - 2):
-            current_time += timedelta(seconds=random.randint(15, 180))
-            # Subtract small processing fee/cut (0.5% - 2%)
-            current_amount = int(current_amount * (1 - random.uniform(0.005, 0.02)))
+            if is_patient_mule:
+                # 2 to 18 hours delay
+                delay_sec = random.randint(7200, 64800)
+                pass_fraction = random.uniform(0.60, 0.85)
+            else:
+                # 15 seconds to 3 minutes delay
+                delay_sec = random.randint(15, 180)
+                pass_fraction = random.uniform(0.98, 0.995)
+                
+            current_time += timedelta(seconds=delay_sec)
+            current_amount = int(current_amount * pass_fraction)
+            
             tx_id = len(edges_data) + 1
             edges_data.append({
                 'edge_id': f"tx-{tx_id}",
@@ -118,8 +143,15 @@ def main():
             })
             
         # Transfer from last intermediary to hub
-        current_time += timedelta(seconds=random.randint(15, 180))
-        current_amount = int(current_amount * (1 - random.uniform(0.005, 0.02)))
+        if is_patient_mule:
+            delay_sec = random.randint(7200, 64800)
+            pass_fraction = random.uniform(0.60, 0.85)
+        else:
+            delay_sec = random.randint(15, 180)
+            pass_fraction = random.uniform(0.98, 0.995)
+            
+        current_time += timedelta(seconds=delay_sec)
+        current_amount = int(current_amount * pass_fraction)
         tx_id = len(edges_data) + 1
         edges_data.append({
             'edge_id': f"tx-{tx_id}",
@@ -131,8 +163,15 @@ def main():
         })
         
         # Transfer from hub to cashout
-        current_time += timedelta(seconds=random.randint(15, 180))
-        current_amount = int(current_amount * (1 - random.uniform(0.005, 0.02)))
+        if is_patient_mule:
+            delay_sec = random.randint(7200, 64800)
+            pass_fraction = random.uniform(0.60, 0.85)
+        else:
+            delay_sec = random.randint(15, 180)
+            pass_fraction = random.uniform(0.98, 0.995)
+            
+        current_time += timedelta(seconds=delay_sec)
+        current_amount = int(current_amount * pass_fraction)
         tx_id = len(edges_data) + 1
         edges_data.append({
             'edge_id': f"tx-{tx_id}",
@@ -144,26 +183,37 @@ def main():
         })
 
     # 3. Generate Normal Background Noise
-    # We need to fill up the transaction list to at least 20,000 transactions.
-    # Normal accounts will perform random transactions with each other.
-    normal_accounts = [make_acc_id(i) for i in range(1, num_nodes - mule_node_counter)]
+    normal_accounts = list(nodes_df[nodes_df['is_mule'] == 0].index)
     
-    print(f"Injecting background noise: {len(normal_accounts)} normal nodes...")
+    # Designate about 2% of normal accounts as "merchants" (high incoming degree)
+    num_merchants = int(len(normal_accounts) * 0.02)
+    merchants = random.sample(normal_accounts, num_merchants)
+    for m in merchants:
+        nodes_df.loc[m, 'type'] = 'merchant'
+        
+    # Pre-select fast routers from normal accounts (noise mimics)
+    num_fast_routers = 600
+    fast_routers = random.sample(normal_accounts, num_fast_routers)
+    for fr in fast_routers:
+        nodes_df.loc[fr, 'type'] = 'fast_router'
+        
+    print(f"Injecting background noise: {len(normal_accounts)} normal nodes with {num_merchants} merchants and {num_fast_routers} fast routers...")
     
-    # Keep track of timestamps for normal nodes to make them spread out
     start_date = datetime(2026, 7, 1)
     
-    # We generate about 20,000 transactions total
     needed_txs = 20000 - len(edges_data)
-    for _ in range(needed_txs):
+    tx_idx = 0
+    while tx_idx < needed_txs:
+        # Choose random normal sender/receiver
         from_acc = random.choice(normal_accounts)
         to_acc = random.choice(normal_accounts)
         while to_acc == from_acc:
             to_acc = random.choice(normal_accounts)
             
-        tx_time = start_date + timedelta(days=random.uniform(0, 4), hours=random.uniform(0, 24))
-        amount = random.randint(10, 5000)
+        tx_time = start_date + timedelta(days=random.uniform(0, 3), hours=random.uniform(0, 24))
+        amount = random.randint(50, 4000)
         
+        # Write base transaction
         tx_id = len(edges_data) + 1
         edges_data.append({
             'edge_id': f"tx-{tx_id}",
@@ -173,6 +223,27 @@ def main():
             'channel': random.choice(['ZELLE', 'ACH', 'WIRE']),
             'timestamp': tx_time.isoformat()
         })
+        tx_idx += 1
+        
+        # If receiver is a fast router, simulate an immediate forward loop within 1 to 10 minutes
+        if to_acc in fast_routers and tx_idx < needed_txs:
+            forward_to = random.choice(normal_accounts)
+            while forward_to == to_acc or forward_to == from_acc:
+                forward_to = random.choice(normal_accounts)
+                
+            forward_time = tx_time + timedelta(seconds=random.randint(60, 600))
+            forward_amount = int(amount * random.uniform(0.97, 0.995))
+            
+            tx_id = len(edges_data) + 1
+            edges_data.append({
+                'edge_id': f"tx-{tx_id}",
+                'from_account': to_acc,
+                'to_account': forward_to,
+                'amount': forward_amount,
+                'channel': 'ZELLE',
+                'timestamp': forward_time.isoformat()
+            })
+            tx_idx += 1
         
     # Compile dataframes
     edges_df = pd.DataFrame(edges_data)
@@ -186,7 +257,12 @@ def main():
     # 4. Build NetworkX Graph and Save Pickle
     G = nx.DiGraph()
     for _, r in nodes_df.iterrows():
-        G.add_node(r['account_id'], is_mule=int(r['is_mule']), device_fingerprint=r['device_fingerprint'], ip_address=r['ip_address'], type=r['type'])
+        G.add_node(r['account_id'], 
+                   is_mule=int(r['is_mule']), 
+                   device_fingerprint=r['device_fingerprint'], 
+                   ip_address=r['ip_address'], 
+                   type=r['type'],
+                   ring_idx=int(r['ring_idx']))
         
     for _, r in edges_df.iterrows():
         G.add_edge(r['from_account'], r['to_account'], amount=float(r['amount']), channel=r['channel'], timestamp=r['timestamp'])

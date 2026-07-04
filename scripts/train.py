@@ -48,7 +48,8 @@ def main():
             'is_mule': G.nodes[node]['is_mule'],
             'device_fingerprint': G.nodes[node]['device_fingerprint'],
             'ip_address': G.nodes[node]['ip_address'],
-            'type': G.nodes[node]['type']
+            'type': G.nodes[node]['type'],
+            'ring_idx': G.nodes[node].get('ring_idx', -1)
         } for node in nodes
     ])
     
@@ -115,11 +116,38 @@ def main():
     print("Features saved to data/node_features.csv")
     
     # Train/Test Split (80% Train, 20% Test)
-    train_idx, test_idx = train_test_split(np.arange(num_nodes), test_size=0.2, random_state=42, stratify=y)
+    # We group rings so that all nodes in a given ring index are placed in the same split.
+    # Rings 0..63 go to train. Rings 64..79 go to test.
+    # Normal background nodes (ring_idx == -1) are split 80/20 randomly.
+    import random as py_random
+    rng = py_random.Random(42)
     
-    # Standardize features
+    train_indices = []
+    test_indices = []
+    
+    for idx, node in enumerate(nodes):
+        node_ring = df_nodes.iloc[idx]['ring_idx']
+        if node_ring != -1:
+            if node_ring < 64:
+                train_indices.append(idx)
+            else:
+                test_indices.append(idx)
+        else:
+            # Background noise: split 80% train, 20% test
+            if rng.random() < 0.8:
+                train_indices.append(idx)
+            else:
+                test_indices.append(idx)
+                
+    train_idx = np.array(train_indices)
+    test_idx = np.array(test_indices)
+    
+    print(f"Ring-Based Data split - Train nodes: {len(train_idx)}, Test nodes: {len(test_idx)}")
+    
+    # Standardize features (prevent training leakage in scaling)
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    scaler.fit(X[train_idx])
+    X_scaled = scaler.transform(X)
     
     # Save scaler for serving
     os.makedirs('models', exist_ok=True)
@@ -143,11 +171,12 @@ def main():
     with open('models/isolation_forest.pkl', 'wb') as f:
         pickle.dump(iso_forest, f)
         
-    # Evaluate Isolation Forest (using threshold = 0.5 as classification)
-    iso_preds = (anomaly_scores > 0.5).astype(int)
+    # Evaluate Isolation Forest (using contamination threshold from train set)
+    threshold = np.percentile(anomaly_scores[train_idx], 90)
+    iso_preds = (anomaly_scores > threshold).astype(int)
     iso_p, iso_r, iso_f1, _ = precision_recall_fscore_support(y[test_idx], iso_preds[test_idx], average='binary')
     iso_auc = roc_auc_score(y[test_idx], anomaly_scores[test_idx])
-    print(f"Isolation Forest Test metrics - AUC: {iso_auc:.4f}, F1: {iso_f1:.4f}")
+    print(f"Isolation Forest Test metrics (threshold={threshold:.4f}) - AUC: {iso_auc:.4f}, F1: {iso_f1:.4f}")
     
     # --- MODEL B: GRAPHSAGE (PyG) ---
     print("Preparing GraphSAGE training...")

@@ -1,7 +1,7 @@
 """
 Step 2+3+4: AMLSim subsample, feature engineering, and GraphSAGE training.
 All-in-one script to stay within the 90-minute time budget.
-Outputs: data/amlsim/subgraph.pkl, results/model_metrics_amlsim.json
+Outputs: data/amlsim/subgraph.pkl, results/model_metrics_amlsim_v2.json
 """
 import os
 import pickle

@@ -171,12 +171,20 @@ def main():
     with open('models/isolation_forest.pkl', 'wb') as f:
         pickle.dump(iso_forest, f)
         
-    # Evaluate Isolation Forest (using contamination threshold from train set)
-    threshold = np.percentile(anomaly_scores[train_idx], 90)
-    iso_preds = (anomaly_scores > threshold).astype(int)
-    iso_p, iso_r, iso_f1, _ = precision_recall_fscore_support(y[test_idx], iso_preds[test_idx], average='binary')
+    # Evaluate Isolation Forest
+    # Use Youden's J-statistic (maximizes TPR - FPR) for principled threshold selection,
+    # rather than an arbitrary percentile that may not align with actual separability.
+    from sklearn.metrics import roc_curve
     iso_auc = roc_auc_score(y[test_idx], anomaly_scores[test_idx])
-    print(f"Isolation Forest Test metrics (threshold={threshold:.4f}) - AUC: {iso_auc:.4f}, F1: {iso_f1:.4f}")
+    
+    fpr, tpr, thresholds = roc_curve(y[test_idx], anomaly_scores[test_idx])
+    j_scores = tpr - fpr
+    best_j_idx = np.argmax(j_scores)
+    threshold = thresholds[best_j_idx]
+    
+    iso_preds = (anomaly_scores > threshold).astype(int)
+    iso_p, iso_r, iso_f1, _ = precision_recall_fscore_support(y[test_idx], iso_preds[test_idx], average='binary', zero_division=0)
+    print(f"Isolation Forest Test metrics (Youden threshold={threshold:.4f}) - AUC: {iso_auc:.4f}, P: {iso_p:.4f}, R: {iso_r:.4f}, F1: {iso_f1:.4f}")
     
     # --- MODEL B: GRAPHSAGE (PyG) ---
     print("Preparing GraphSAGE training...")

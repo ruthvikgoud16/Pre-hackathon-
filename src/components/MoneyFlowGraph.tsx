@@ -21,37 +21,38 @@ export default function MoneyFlowGraph({ nodes, edges, isFrozen, onSelectNode }:
 
     // 1. Map Mock Nodes to vis.js Nodes
     const visNodes = nodes.map((node) => {
-      let bg = '#78716c'; // Stone grey
-      let border = '#44403c';
-      let text = '#1c1e1e'; // Dark charcoal text
+      let bg = '#27272A'; // Zinc 800
+      let border = '#3F3F46'; // Zinc 700
+      let text = '#FFFFFF'; // White text
       
       // Determine colors based on status/roles
       if (isFrozen) {
         // Under isolation, mule hub stays red; others fade to grey
         if (node.type === 'target') {
-          bg = '#991b1b'; // Distressed red stamp
-          border = '#7f1d1d';
+          bg = '#EF4444'; // Red 500
+          border = '#DC2626';
         } else {
-          bg = '#a8a29e'; // Faded charcoal
-          border = '#78716c';
+          bg = '#18181B'; // Faded Zinc 900
+          border = '#27272A';
+          text = '#71717A'; // Gray text
         }
       } else {
         switch (node.type) {
           case 'victim':
-            bg = '#166534'; // Safe Ledger Green
-            border = '#14532d';
+            bg = '#10B981'; // Emerald 500
+            border = '#059669';
             break;
           case 'intermediary':
-            bg = '#d97706'; // Brighter Amber
-            border = '#78350f';
+            bg = '#F59E0B'; // Amber 500
+            border = '#D97706';
             break;
           case 'target':
-            bg = '#991b1b'; // Stamp Red
-            border = '#7f1d1d';
+            bg = '#EF4444'; // Red 500
+            border = '#DC2626';
             break;
           case 'cash_out':
-            bg = '#1d4ed8'; // Signature Pen Blue
-            border = '#1e40af';
+            bg = '#3B82F6'; // Blue 500
+            border = '#2563EB';
             break;
         }
       }
@@ -72,43 +73,43 @@ export default function MoneyFlowGraph({ nodes, edges, isFrozen, onSelectNode }:
           background: bg,
           border: border,
           highlight: {
-            background: '#1d4ed8', // Ballpoint blue highlight
-            border: '#1e40af',
+            background: '#7C3AED', // Violet highlight
+            border: '#6D28D9',
           },
           hover: {
             background: bg,
-            border: '#1d4ed8',
+            border: '#7C3AED',
           }
         },
-        font: { color: text, size: 10, face: 'Courier New, Courier, monospace', bold: true },
-        borderWidth: 2.5,
+        font: { color: text, size: 10, face: 'Inter, system-ui, sans-serif', bold: true },
+        borderWidth: 2,
         shape: 'dot',
         size: 15,
         shadow: {
           enabled: true,
-          color: 'rgba(28, 30, 30, 0.15)',
-          size: 6,
-          x: 2,
-          y: 2
+          color: node.type === 'target' && !isFrozen ? 'rgba(239, 68, 68, 0.4)' : 'rgba(124, 58, 237, 0.2)',
+          size: node.type === 'target' && !isFrozen ? 12 : 8,
+          x: 0,
+          y: 3
         }
       };
     });
 
     // 2. Map Mock Edges to vis.js Edges
     const visEdges = edges.map((edge) => {
-      let edgeColor = '#78716c'; // default charcoal-stone
+      let edgeColor = '#3F3F46'; // default Zinc 700
       if (isFrozen) {
-        edgeColor = '#b91c1c'; // Isolated Red links
+        edgeColor = '#991B1B'; // Red 800
       } else {
         switch (edge.channel) {
           case 'ZELLE':
-            edgeColor = '#1d4ed8'; // Pen blue
+            edgeColor = '#3B82F6'; // Blue 500
             break;
           case 'ACH':
-            edgeColor = '#166534'; // Ledger green
+            edgeColor = '#10B981'; // Emerald 500
             break;
           case 'WIRE':
-            edgeColor = '#991b1b'; // Stamp red
+            edgeColor = '#EF4444'; // Red 500
             break;
         }
       }
@@ -119,19 +120,19 @@ export default function MoneyFlowGraph({ nodes, edges, isFrozen, onSelectNode }:
         to: edge.to,
         label: edge.label,
         font: {
-          color: '#1c1e1e', // Dark charcoal labels
+          color: '#E4E4E7', // Zinc 200 labels
           size: 9,
           face: 'Courier New, Courier, monospace',
-          strokeWidth: 3,
-          strokeColor: '#fdfbf7' // Outlined with white paper back
+          strokeWidth: 2,
+          strokeColor: '#09090B' // Outlined with dark background
         },
         arrows: {
           to: { enabled: true, scaleFactor: 0.75 }
         },
         color: {
           color: edgeColor,
-          highlight: '#1d4ed8',
-          hover: '#1d4ed8'
+          highlight: '#7C3AED',
+          hover: '#7C3AED'
         },
         width: isFrozen ? 2.5 : 1.5,
         dashes: true,
@@ -193,7 +194,7 @@ export default function MoneyFlowGraph({ nodes, edges, isFrozen, onSelectNode }:
       const net = network as any;
       if (net.body.nodes[params.node]) {
         net.body.nodes[params.node].setOptions({ 
-          shadow: { size: 12, color: 'rgba(28, 30, 30, 0.3)', y: 4, x: 0 },
+          shadow: { size: 14, color: 'rgba(124, 58, 237, 0.45)', y: 4, x: 0 },
           size: 16 
         });
       }
@@ -203,7 +204,7 @@ export default function MoneyFlowGraph({ nodes, edges, isFrozen, onSelectNode }:
       const net = network as any;
       if (net.body.nodes[params.node]) {
         net.body.nodes[params.node].setOptions({ 
-          shadow: { size: 6, color: 'rgba(28, 30, 30, 0.15)', y: 2, x: 2 },
+          shadow: { size: 8, color: 'rgba(124, 58, 237, 0.2)', y: 3, x: 0 },
           size: 15 
         });
       }

@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -11,8 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ response: mockReply });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const ai = new GoogleGenAI({ apiKey });
 
     // Format the network context for the LLM
     const contextString = `
@@ -45,13 +44,15 @@ If the investigator asks to "Draft SAR Narrative", generate a formal regulatory 
 Keep all responses in clean, structured markdown with bullet points. Be concise and professional.
 `;
 
-    const result = await model.generateContent({
-      contents: [
-        { role: 'user', parts: [{ text: contextString + "\n\nInvestigator Prompt: " + prompt + "\n\nInstructions: " + systemInstruction }] }
-      ]
+    const result = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: contextString + "\n\nInvestigator Prompt: " + prompt,
+      config: {
+        systemInstruction: systemInstruction
+      }
     });
 
-    const responseText = result.response.text();
+    const responseText = result.text || "No response received.";
     return NextResponse.json({ response: responseText });
   } catch (error: any) {
     console.error("Gemini API Error:", error);
